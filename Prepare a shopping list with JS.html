@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My To-Do List</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>My Tasks <span>✦</span></h1>
+        <p class="subtitle">Organize your day. Get things done.</p>
+
+        <div class="input-area">
+            <input type="text" id="taskInput"
+                placeholder="What needs to be done?">
+            <button id="addBtn">+</button>
+        </div>
+
+        <div class="filters">
+            <button class="filter active" data-filter="all">All</button>
+            <button class="filter" data-filter="active">Active</button>
+            <button class="filter" data-filter="completed">Completed</button>
+        </div>
+
+        <div id="taskList"></div>
+
+        <div class="footer">
+            <span id="taskCount">0 tasks left</span>
+            <button id="clearBtn">Clear completed</button>
+        </div>
+    </div>
+
+    <script>
+
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let filter = "all";
+
+const input = document.getElementById("taskInput");
+const list = document.getElementById("taskList");
+
+function save() {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function render() {
+    list.innerHTML = "";
+
+    tasks.filter(t =>
+        filter === "all" ||
+        (filter === "active" && !t.done) ||
+        (filter === "completed" && t.done)
+    ).forEach((t, i) => {
+        list.innerHTML += `
+            <div class="task ${t.done ? "completed" : ""}">
+                <input type="checkbox" ${t.done ? "checked" : ""}
+                    onchange="tasks[${tasks.indexOf(t)}].done=this.checked;save();render()">
+                <span>${escapeHTML(t.text)}</span>
+                <button class="delete" onclick="tasks.splice(${tasks.indexOf(t)},1);save();render()">✕</button>
+            </div>`;
+    });
+
+    document.getElementById("taskCount").textContent =
+        tasks.filter(t => !t.done).length + " tasks left";
+}
+
+function escapeHTML(text) {
+    return text.replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#39;"
+    })[c]);
+}
+
+function addTask() {
+    if (!input.value.trim()) return;
+
+    tasks.push({ text: input.value.trim(), done: false });
+    input.value = "";
+    save();
+    render();
+}
+
+document.getElementById("addBtn").onclick = addTask;
+
+input.onkeydown = e => {
+    if (e.key === "Enter") addTask();
+};
+
+document.querySelectorAll(".filter").forEach(btn => {
+    btn.onclick = () => {
+        filter = btn.dataset.filter;
+        document.querySelectorAll(".filter")
+            .forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        render();
+    };
+});
+
+document.getElementById("clearBtn").onclick = () => {
+    tasks = tasks.filter(t => !t.done);
+    save();
+    render();
+};
+
+render();
+
+    </script>
+</body>
+</html>
